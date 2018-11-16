@@ -59,6 +59,7 @@ func ListenAndServeHTTP(l config.Listen, h http.Handler, cfg *tls.Config) error 
 	if err != nil {
 		return err
 	}
+
 	srv := &http.Server{
 		Addr:         l.Addr,
 		Handler:      h,
