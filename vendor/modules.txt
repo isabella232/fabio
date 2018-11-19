@@ -110,3 +110,5 @@ golang.org/x/net/idna
 golang.org/x/net/lex/httplex
 # golang.org/x/sync v0.0.0-20170927054112-8e0aa688b654
 golang.org/x/sync/singleflight
+# github.com/tg123/go-htpasswd v0.0.0-20181019180120-0849ceac46bc
+github.com/tg123/go-htpasswd
