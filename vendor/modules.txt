@@ -101,14 +101,22 @@ github.com/rcrowley/go-metrics
 github.com/rogpeppe/fastuuid
 # github.com/sergi/go-diff v0.0.0-20170118131230-24e2351369ec
 github.com/sergi/go-diff/diffmatchpatch
-# golang.org/x/net v0.0.0-20170114055629-f2499483f923
+# github.com/tg123/go-htpasswd v0.0.0-20181019180120-0849ceac46bc
+github.com/tg123/go-htpasswd
+# golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
+# golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
 golang.org/x/net/websocket
 golang.org/x/net/http2
 golang.org/x/net/context
+golang.org/x/net/http/httpguts
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-golang.org/x/net/lex/httplex
-# golang.org/x/sync v0.0.0-20170927054112-8e0aa688b654
+# golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
 golang.org/x/sync/singleflight
-# github.com/tg123/go-htpasswd v0.0.0-20181019180120-0849ceac46bc
-github.com/tg123/go-htpasswd
+# golang.org/x/text v0.3.0
+golang.org/x/text/secure/bidirule
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
+golang.org/x/text/transform
