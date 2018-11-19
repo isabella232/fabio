@@ -69,6 +69,7 @@ type Proxy struct {
 	GZIPContentTypes      *regexp.Regexp
 	RequestID             string
 	STSHeader             STSHeader
+	AuthSchemes           map[string]AuthScheme
 }
 
 type STSHeader struct {
@@ -157,4 +158,15 @@ type Tracing struct {
 	Topic          string
 	SamplerRate    float64
 	SpanHost       string
+}
+
+type AuthScheme struct {
+	Name  string
+	Type  string
+	Basic BasicAuth
+}
+
+type BasicAuth struct {
+	Realm string
+	File  string
 }
