@@ -2,6 +2,7 @@ package route
 
 import (
 	"net/http"
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -12,7 +13,7 @@ type testAuth struct {
 	ok bool
 }
 
-func (t *testAuth) Authorized(r *http.Request, w http.ResponseWriter) bool {
+func (t *testAuth) Authorized(r *http.Request, w http.ResponseWriter, dest *url.URL, service string) bool {
 	return t.ok
 }
 
