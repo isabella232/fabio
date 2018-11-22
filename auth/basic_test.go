@@ -161,7 +161,7 @@ func TestBasic_Authorised(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, want := basicAuth.Authorized(tt.req, tt.res), tt.out; !reflect.DeepEqual(got, want) {
+			if got, want := basicAuth.Authorized(tt.req, tt.res, nil, ""), tt.out; !reflect.DeepEqual(got, want) {
 				t.Errorf("got %v want %v", got, want)
 			}
 		})
@@ -177,7 +177,7 @@ func TestBasic_Authorized_should_set_www_realm_header(t *testing.T) {
 
 	rw := &responseWriter{}
 
-	_ = basicAuth.Authorized(&http.Request{Header: http.Header{}}, rw)
+	_ = basicAuth.Authorized(&http.Request{Header: http.Header{}}, rw, nil, "")
 
 	got := rw.Header().Get("WWW-Authenticate")
 	want := "Basic realm=\"testrealm\""

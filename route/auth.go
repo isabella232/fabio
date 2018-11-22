@@ -19,5 +19,5 @@ func (t *Target) Authorized(r *http.Request, w http.ResponseWriter, authSchemes 
 		return false
 	}
 
-	return scheme.Authorized(r, w)
+	return scheme.Authorized(r, w, t.URL, t.Service)
 }
