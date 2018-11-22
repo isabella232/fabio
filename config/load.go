@@ -223,7 +223,7 @@ func load(cmdline, environ, envprefix []string, props *properties.Properties) (c
 		return nil, err
 	}
 
-	authSchemes, err := parseAuthSchemes(authSchemesValue)
+	authSchemes, err := parseAuthSchemes(authSchemesValue, certSources)
 
 	if err != nil {
 		return nil, err
@@ -558,14 +558,14 @@ func parseCertSource(cfg map[string]string) (c CertSource, err error) {
 	return
 }
 
-func parseAuthSchemes(cfgs string) (as map[string]AuthScheme, err error) {
+func parseAuthSchemes(cfgs string, certSources map[string]CertSource) (as map[string]AuthScheme, err error) {
 	kvs, err := parseKVSlice(cfgs)
 	if err != nil {
 		return nil, err
 	}
 	as = map[string]AuthScheme{}
 	for _, cfg := range kvs {
-		src, err := parseAuthScheme(cfg)
+		src, err := parseAuthScheme(cfg, certSources)
 		if err != nil {
 			return nil, err
 		}
@@ -574,7 +574,7 @@ func parseAuthSchemes(cfgs string) (as map[string]AuthScheme, err error) {
 	return
 }
 
-func parseAuthScheme(cfg map[string]string) (a AuthScheme, err error) {
+func parseAuthScheme(cfg map[string]string, certSources map[string]CertSource) (a AuthScheme, err error) {
 	if cfg == nil {
 		return
 	}
@@ -585,6 +585,38 @@ func parseAuthScheme(cfg map[string]string) (a AuthScheme, err error) {
 			a.Name = v
 		case "type":
 			a.Type = v
+		// Basic
+		case "file":
+			a.Basic.File = v
+		case "realm":
+			a.Basic.Realm = v
+		// External
+		case "addr":
+			a.External.Addr = v
+		case "cs":
+			a.External.CertSource = certSources[cfg["cs"]]
+		case "strictmatch":
+			a.External.StrictMatch = (v == "true")
+		case "tlsmin":
+			n, err := parseTLSVersion(v)
+			if err != nil {
+				return AuthScheme{}, err
+			}
+			a.External.TLSMinVersion = n
+		case "tlsmax":
+			n, err := parseTLSVersion(v)
+			if err != nil {
+				return AuthScheme{}, err
+			}
+			a.External.TLSMaxVersion = n
+		case "tlsciphers":
+			c, err := parseTLSCiphers(v)
+			if err != nil {
+				return AuthScheme{}, err
+			}
+			a.External.TLSCiphers = c
+		case "tlsskipverify":
+			a.External.TLSSkipVerify = (v == "true")
 		}
 	}
 
@@ -596,16 +628,19 @@ func parseAuthScheme(cfg map[string]string) (a AuthScheme, err error) {
 	case "":
 		return AuthScheme{}, fmt.Errorf("missing 'type' in auth '%s'", a.Name)
 	case "basic":
-		a.Basic = BasicAuth{
-			File:  cfg["file"],
-			Realm: cfg["realm"],
-		}
-
 		if a.Basic.File == "" {
 			return AuthScheme{}, fmt.Errorf("missing 'file' in auth '%s'", a.Name)
 		}
 		if a.Basic.Realm == "" {
 			a.Basic.Realm = a.Name
+		}
+	case "external":
+		if cfg["addr"] == "" {
+			return AuthScheme{}, fmt.Errorf("missing 'addr' in auth '%s'", a.Name)
+		}
+
+		if cfg["cs"] != "" && a.External.CertSource.Name == "" {
+			return AuthScheme{}, fmt.Errorf("unknown certificate source %q", cfg["cs"])
 		}
 	default:
 		return AuthScheme{}, fmt.Errorf("unknown auth type '%s'", a.Type)

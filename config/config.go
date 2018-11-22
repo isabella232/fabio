@@ -161,12 +161,23 @@ type Tracing struct {
 }
 
 type AuthScheme struct {
-	Name  string
-	Type  string
-	Basic BasicAuth
+	Name     string
+	Type     string
+	Basic    BasicAuth
+	External ExternalAuth
 }
 
 type BasicAuth struct {
 	Realm string
 	File  string
+}
+
+type ExternalAuth struct {
+	Addr          string
+	CertSource    CertSource
+	StrictMatch   bool
+	TLSMinVersion uint16
+	TLSMaxVersion uint16
+	TLSCiphers    []uint16
+	TLSSkipVerify bool
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/fabiolb/fabio/config"
 	"github.com/tg123/go-htpasswd"
@@ -29,7 +30,7 @@ func newBasicAuth(cfg config.BasicAuth) (AuthScheme, error) {
 	}, nil
 }
 
-func (b *basic) Authorized(request *http.Request, response http.ResponseWriter) bool {
+func (b *basic) Authorized(request *http.Request, response http.ResponseWriter, _ *url.URL, _ string) bool {
 	user, password, ok := request.BasicAuth()
 
 	if !ok {
