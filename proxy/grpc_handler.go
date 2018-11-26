@@ -73,9 +73,7 @@ func GetGRPCDirector(tlscfg *tls.Config) func(ctx context.Context, fullMethodNam
 			opts = append(opts, grpc.WithInsecure())
 		}
 
-		newCtx := context.Background()
-		newCtx = metadata.NewOutgoingContext(newCtx, md)
-
+		newCtx := metadata.NewOutgoingContext(ctx, md)
 		conn, err := grpc.DialContext(newCtx, target.URL.Host, opts...)
 
 		return newCtx, conn, err
@@ -97,27 +95,6 @@ type proxyStream struct {
 
 func (p proxyStream) Context() context.Context {
 	return p.ctx
-}
-
-func (g GrpcProxyInterceptor) Unary(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	target, err := g.lookup(ctx, info.FullMethod)
-
-	if err != nil {
-		return nil, err
-	}
-
-	ctx = context.WithValue(ctx, targetKey{}, target)
-
-	start := time.Now()
-
-	res, err := handler(ctx, req)
-
-	end := time.Now()
-	dur := end.Sub(start)
-
-	target.Timer.Update(dur)
-
-	return res, err
 }
 
 func (g GrpcProxyInterceptor) Stream(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
