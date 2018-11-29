@@ -6,10 +6,14 @@ import (
 	"net/url"
 
 	"github.com/fabiolb/fabio/config"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/stats"
 )
 
 type AuthScheme interface {
-	Authorized(request *http.Request, response http.ResponseWriter, dest *url.URL, service string) bool
+	AuthorizedHTTP(request *http.Request, response http.ResponseWriter, dest *url.URL, service string) bool
+	AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, URL *url.URL, fullMethod string, service string) bool
+	SupportedProto(proto string) bool
 }
 
 func LoadAuthSchemes(cfg map[string]config.AuthScheme) (map[string]AuthScheme, error) {

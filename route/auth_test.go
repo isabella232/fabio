@@ -75,7 +75,7 @@ func TestTarget_Authorized(t *testing.T) {
 				AuthScheme: tt.authScheme,
 			}
 
-			if got, want := target.Authorized(&http.Request{}, &responseWriter{}, tt.authSchemes), tt.out; !reflect.DeepEqual(got, want) {
+			if got, want := target.AuthorizedHTTP(&http.Request{}, &responseWriter{}, tt.authSchemes), tt.out; !reflect.DeepEqual(got, want) {
 				t.Errorf("got %v want %v", got, want)
 			}
 		})

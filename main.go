@@ -149,9 +149,16 @@ func newGrpcProxy(cfg *config.Config, tlscfg *tls.Config) []grpc.ServerOption {
 		NoRoute: metrics.DefaultRegistry.GetCounter("grpc.noroute"),
 	}
 
+	authSchemes, err := auth.LoadAuthSchemes(cfg.Proxy.AuthSchemes)
+
+	if err != nil {
+		exit.Fatal("[FATAL]", err)
+	}
+
 	proxyInterceptor := proxy.GrpcProxyInterceptor{
 		Config:       cfg,
 		StatsHandler: statsHandler,
+		AuthSchemes:  authSchemes,
 	}
 
 	handler := grpc_proxy.TransparentHandler(proxy.GetGRPCDirector(tlscfg))
