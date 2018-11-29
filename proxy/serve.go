@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"crypto/tls"
+	"google.golang.org/grpc"
 	"net"
 	"net/http"
 	"sync"
@@ -67,6 +68,19 @@ func ListenAndServeHTTP(l config.Listen, h http.Handler, cfg *tls.Config) error 
 		WriteTimeout: l.WriteTimeout,
 		TLSConfig:    cfg,
 	}
+	return serve(ln, srv)
+}
+
+func ListenAndServeGRPC(l config.Listen, opts []grpc.ServerOption, cfg *tls.Config) error {
+	ln, err := ListenTCP(l.Addr, cfg)
+	if err != nil {
+		return err
+	}
+
+	srv := &gRPCServer{
+		server: grpc.NewServer(opts...),
+	}
+
 	return serve(ln, srv)
 }
 
