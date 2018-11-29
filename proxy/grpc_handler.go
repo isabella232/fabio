@@ -12,11 +12,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fabiolb/fabio/auth"
 	"github.com/fabiolb/fabio/config"
 	"github.com/fabiolb/fabio/metrics"
 	"github.com/fabiolb/fabio/route"
 	grpc_proxy "github.com/mwitkow/grpc-proxy/proxy"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -73,6 +75,7 @@ func GetGRPCDirector(tlscfg *tls.Config) func(ctx context.Context, fullMethodNam
 type GrpcProxyInterceptor struct {
 	Config       *config.Config
 	StatsHandler *GrpcStatsHandler
+	AuthSchemes  map[string]auth.AuthScheme
 }
 
 type targetKey struct{}
@@ -96,6 +99,15 @@ func (g GrpcProxyInterceptor) Stream(srv interface{}, stream grpc.ServerStream, 
 	}
 
 	ctx = context.WithValue(ctx, targetKey{}, target)
+
+	md, _ := metadata.FromIncomingContext(ctx)
+
+	connInfo, _ := ctx.Value(connCtxKey{}).(*stats.ConnTagInfo)
+	rpcInfo, _ := ctx.Value(rpcCtxKey{}).(*stats.RPCTagInfo)
+
+	if !target.AuthorizedGRPC(md, connInfo, rpcInfo, g.AuthSchemes) {
+		return status.Error(codes.Unauthenticated, "not authorised")
+	}
 
 	proxyStream := proxyStream{
 		ServerStream: stream,

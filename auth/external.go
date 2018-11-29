@@ -1,30 +1,35 @@
 package auth
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
+	"time"
 
 	"github.com/fabiolb/fabio/auth/external"
 	"github.com/fabiolb/fabio/cert"
 	"github.com/fabiolb/fabio/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/stats"
 )
 
 type external struct {
 	grpc fabio_auth_external.AuthorizationClient
 }
 
-func newExternalAuth(cfg config.ExternalAuth) (*external, error) {
+func newExternalAuth(cfg config.ExternalAuth) (AuthScheme, error) {
 	ctx := context.Background()
 
-	opts := []grpc.DialOption{}
+	opts := []grpc.DialOption{
+		grpc.WithBackoffMaxDelay(time.Second * 1),
+	}
 
 	tlscfg, err := makeTLSConfig(cfg)
 	if err != nil {
@@ -47,11 +52,8 @@ func newExternalAuth(cfg config.ExternalAuth) (*external, error) {
 	}, nil
 }
 
-func (e *external) Authorized(request *http.Request, response http.ResponseWriter, dest *url.URL, service string) bool {
+func (e *external) AuthorizedHTTP(request *http.Request, response http.ResponseWriter, dest *url.URL, service string) bool {
 	ctx := context.Background()
-
-	body, err := ioutil.ReadAll(request.Body)
-	request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	headers := map[string]string{}
 
@@ -61,7 +63,6 @@ func (e *external) Authorized(request *http.Request, response http.ResponseWrite
 
 	checkRequest := &fabio_auth_external.CheckRequest{
 		Headers: headers,
-		Body:    body,
 		Source: &fabio_auth_external.Source{
 			RemoteAddr: request.RemoteAddr,
 			Url:        request.URL.String(),
@@ -80,6 +81,46 @@ func (e *external) Authorized(request *http.Request, response http.ResponseWrite
 	}
 
 	return res.Ok
+}
+
+func (e *external) AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, dest *url.URL, fullMethod string, service string) bool {
+	ctx := context.Background()
+
+	headers := map[string]string{}
+
+	for k := range md {
+		headers[k] = strings.Join(md.Get(k), " ")
+	}
+
+	// build the source url (i.e. the url that the request came in on)
+	_, sourcePort, _ := net.SplitHostPort(connInfo.LocalAddr.String())
+	sourceUrl := fmt.Sprintf("%s:%s%s", strings.Join(md.Get(":authority"), " "), sourcePort, fullMethod)
+
+	checkRequest := &fabio_auth_external.CheckRequest{
+		Headers: headers,
+		Source: &fabio_auth_external.Source{
+			RemoteAddr: connInfo.RemoteAddr.String(),
+			Url:        sourceUrl,
+		},
+		Destination: &fabio_auth_external.Destination{
+			Service: service,
+			Url:     dest.String(),
+		},
+	}
+
+	res, err := e.grpc.Check(ctx, checkRequest)
+
+	if err != nil {
+		log.Println("[WARN] external-auth: got an error from the auth service ", err)
+		return false
+	}
+
+	return res.Ok
+}
+
+func (e *external) SupportedProto(proto string) bool {
+	return proto == "http" || proto == "https" ||
+		proto == "grpc" || proto == "grpcs"
 }
 
 func makeTLSConfig(cfg config.ExternalAuth) (*tls.Config, error) {

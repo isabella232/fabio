@@ -8,7 +8,6 @@ service Authorization {
 
 message CheckRequest {
     map<string, string> headers = 1;
-    bytes body = 2;
     Source source = 3;
     Destination destination = 4;
 }
