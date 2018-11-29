@@ -105,7 +105,7 @@ func TestNewBasicAuth(t *testing.T) {
 	})
 }
 
-func TestBasic_Authorised(t *testing.T) {
+func TestBasic_AuthorisedHTTP(t *testing.T) {
 	basicAuth, err := createBasicAuth("foo", "bar")
 	creds := []byte("foo:bar")
 
@@ -168,7 +168,7 @@ func TestBasic_Authorised(t *testing.T) {
 	}
 }
 
-func TestBasic_Authorized_should_set_www_realm_header(t *testing.T) {
+func TestBasic_AuthorizedHTTP_should_set_www_realm_header(t *testing.T) {
 	basicAuth, err := createBasicAuth("foo", "bar")
 
 	if err != nil {
@@ -185,4 +185,61 @@ func TestBasic_Authorized_should_set_www_realm_header(t *testing.T) {
 	if strings.Compare(got, want) != 0 {
 		t.Errorf("got '%s', want '%s'", got, want)
 	}
+}
+
+func TestBasic_SupportedProto(t *testing.T) {
+	basicAuth, err := createBasicAuth("foo", "bar")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name string
+		out  bool
+	}{
+		{
+			"http",
+			true,
+		},
+		{
+			"https",
+			true,
+		},
+		{
+			"grpc",
+			false,
+		},
+		{
+			"grpcs",
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got, want := basicAuth.SupportedProto(tt.name), tt.out; !reflect.DeepEqual(got, want) {
+				t.Errorf("got %v want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestBasic_AuthorizedGRPC_should_panic(t *testing.T) {
+	basicAuth, err := createBasicAuth("foo", "bar")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPanic(t, func() { basicAuth.AuthorizedGRPC(nil, nil, nil, "", "") })
+}
+
+func assertPanic(t *testing.T, f func()) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	f()
 }
