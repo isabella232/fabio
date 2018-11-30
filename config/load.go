@@ -597,28 +597,12 @@ func parseAuthScheme(cfg map[string]string, certSources map[string]CertSource) (
 		// External
 		case "addr":
 			a.External.Addr = v
-		case "cs":
-			a.External.CertSource = certSources[cfg["cs"]]
-		case "strictmatch":
-			a.External.StrictMatch = (v == "true")
-		case "tlsmin":
-			n, err := parseTLSVersion(v)
-			if err != nil {
-				return AuthScheme{}, err
-			}
-			a.External.TLSMinVersion = n
-		case "tlsmax":
-			n, err := parseTLSVersion(v)
-			if err != nil {
-				return AuthScheme{}, err
-			}
-			a.External.TLSMaxVersion = n
-		case "tlsciphers":
-			c, err := parseTLSCiphers(v)
-			if err != nil {
-				return AuthScheme{}, err
-			}
-			a.External.TLSCiphers = c
+		case "usetls":
+			a.External.UseTLS = (v == "true")
+		case "clientca":
+			a.External.ClientCAPath = v
+		case "servername":
+			a.External.ServerName = v
 		case "tlsskipverify":
 			a.External.TLSSkipVerify = (v == "true")
 		}
@@ -641,10 +625,6 @@ func parseAuthScheme(cfg map[string]string, certSources map[string]CertSource) (
 	case "external":
 		if cfg["addr"] == "" {
 			return AuthScheme{}, fmt.Errorf("missing 'addr' in auth '%s'", a.Name)
-		}
-
-		if cfg["cs"] != "" && a.External.CertSource.Name == "" {
-			return AuthScheme{}, fmt.Errorf("unknown certificate source %q", cfg["cs"])
 		}
 	default:
 		return AuthScheme{}, fmt.Errorf("unknown auth type '%s'", a.Type)

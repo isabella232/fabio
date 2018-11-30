@@ -175,10 +175,8 @@ type BasicAuth struct {
 
 type ExternalAuth struct {
 	Addr          string
-	CertSource    CertSource
-	StrictMatch   bool
-	TLSMinVersion uint16
-	TLSMaxVersion uint16
-	TLSCiphers    []uint16
+	UseTLS        bool
 	TLSSkipVerify bool
+	ClientCAPath  string
+	ServerName    string
 }
