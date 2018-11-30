@@ -98,6 +98,11 @@ func (g GrpcProxyInterceptor) Stream(srv interface{}, stream grpc.ServerStream, 
 		return err
 	}
 
+	if target == nil {
+		log.Println("[WARN] grpc: no route for ", info.FullMethod)
+		return status.Error(codes.NotFound, "no route found")
+	}
+
 	ctx = context.WithValue(ctx, targetKey{}, target)
 
 	md, _ := metadata.FromIncomingContext(ctx)
