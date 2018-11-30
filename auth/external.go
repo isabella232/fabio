@@ -95,7 +95,7 @@ func (e *external) AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, d
 
 	// build the source url (i.e. the url that the request came in on)
 	_, sourcePort, _ := net.SplitHostPort(connInfo.LocalAddr.String())
-	sourceUrl := fmt.Sprintf("%s:%s%s", strings.Join(md.Get(":authority"), " "), sourcePort, fullMethod)
+	sourceUrl := fmt.Sprintf("grpc://%s:%s%s", md.Get(":authority")[0], sourcePort, fullMethod)
 
 	checkRequest := &fabio_auth_external.CheckRequest{
 		Headers: headers,
