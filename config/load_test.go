@@ -293,6 +293,42 @@ func TestLoad(t *testing.T) {
 			},
 		},
 		{
+			desc: "-proxy.auth with source external",
+			args: []string{"-proxy.auth", "name=foo;type=external;addr=myauth.service:1234"},
+			cfg: func(cfg *Config) *Config {
+				cfg.Proxy.AuthSchemes = map[string]AuthScheme{
+					"foo": {
+						Name: "foo",
+						Type: "external",
+						External: ExternalAuth{
+							Addr: "myauth.service:1234",
+						},
+					},
+				}
+				return cfg
+			},
+		},
+		{
+			desc: "-proxy.auth with source external and tls configured",
+			args: []string{"-proxy.auth", "name=foo;type=external;addr=myauth.service:1234;usetls=true;tlsskipverify=true;clientca=/some/path/on/disk;servername=foo.com"},
+			cfg: func(cfg *Config) *Config {
+				cfg.Proxy.AuthSchemes = map[string]AuthScheme{
+					"foo": {
+						Name: "foo",
+						Type: "external",
+						External: ExternalAuth{
+							Addr:          "myauth.service:1234",
+							UseTLS:        true,
+							TLSSkipVerify: true,
+							ClientCAPath:  "/some/path/on/disk",
+							ServerName:    "foo.com",
+						},
+					},
+				}
+				return cfg
+			},
+		},
+		{
 			desc: "issue 305",
 			args: []string{
 				"-proxy.addr", ":443;cs=consul-cs,:80,:2375;proto=tcp+sni",

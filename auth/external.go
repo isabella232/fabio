@@ -2,8 +2,9 @@ package auth
 
 import (
 	"context"
-	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/fabiolb/fabio/auth/external"
-	"github.com/fabiolb/fabio/cert"
 	"github.com/fabiolb/fabio/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -31,13 +31,14 @@ func newExternalAuth(cfg config.ExternalAuth) (AuthScheme, error) {
 		grpc.WithBackoffMaxDelay(time.Second * 1),
 	}
 
-	tlscfg, err := makeTLSConfig(cfg)
+	creds, err := makeCredentials(cfg)
+
 	if err != nil {
 		return nil, err
 	}
 
-	if tlscfg != nil {
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlscfg)))
+	if creds != nil {
+		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
 		opts = append(opts, grpc.WithInsecure())
 	}
@@ -123,20 +124,27 @@ func (e *external) SupportedProto(proto string) bool {
 		proto == "grpc" || proto == "grpcs"
 }
 
-func makeTLSConfig(cfg config.ExternalAuth) (*tls.Config, error) {
-	if cfg.CertSource.Name == "" {
+func makeCredentials(cfg config.ExternalAuth) (credentials.TransportCredentials, error) {
+	if !cfg.UseTLS {
 		return nil, nil
 	}
-	src, err := cert.NewSource(cfg.CertSource)
+
+	clientCA, err := getCACert(cfg)
+
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create cert source %s. %s", cfg.CertSource.Name, err)
-	}
-	tlscfg, err := cert.TLSConfig(src, cfg.StrictMatch, cfg.TLSMinVersion, cfg.TLSMaxVersion, cfg.TLSCiphers)
-	if err != nil {
-		return nil, fmt.Errorf("[FATAL] Failed to create TLS config for cert source %s. %s", cfg.CertSource.Name, err)
+		return nil, err
 	}
 
-	tlscfg.InsecureSkipVerify = cfg.TLSSkipVerify
+	return credentials.NewClientTLSFromCert(clientCA, cfg.ServerName), nil
+}
 
-	return tlscfg, nil
+func getCACert(cfg config.ExternalAuth) (*x509.CertPool, error) {
+	caCert, _ := ioutil.ReadFile(cfg.ClientCAPath)
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("error adding certificate to pool")
+	}
+
+	return pool, nil
 }
