@@ -16,16 +16,20 @@ const (
 
 // AccessDeniedHTTP checks rules on the target for HTTP proxy routes.
 func (t *Target) AccessDeniedHTTP(r *http.Request) bool {
-	var ip net.IP
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	// No rules ... skip checks
+	if len(t.accessRules) == 0 {
+		return false
+	}
 
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		log.Printf("[ERROR] failed to get host from remote header %s: %s",
 			r.RemoteAddr, err.Error())
 		return false
 	}
 
-	if ip = net.ParseIP(host); ip == nil {
+	ip := net.ParseIP(host)
+	if ip == nil {
 		log.Printf("[WARN] failed to parse remote address %s", host)
 	}
 
@@ -64,8 +68,21 @@ func (t *Target) AccessDeniedHTTP(r *http.Request) bool {
 
 // AccessDeniedTCP checks rules on the target for TCP proxy routes.
 func (t *Target) AccessDeniedTCP(c net.Conn) bool {
-	ip := net.ParseIP(c.RemoteAddr().String())
-	if t.denyByIP(ip) {
+	// Calling RemoteAddr on a proxy-protocol enabled connection may block.
+	// Therefore we explicitly check and bail out early if there are no
+	// rules defined for the target.
+	// See https://github.com/fabiolb/fabio/issues/524 for background.
+	if len(t.accessRules) == 0 {
+		return false
+	}
+	// get remote address and validate assertion
+	addr, ok := c.RemoteAddr().(*net.TCPAddr)
+	if !ok {
+		log.Printf("[ERROR] failed to assert remote connection address for %s", t.Service)
+		return false
+	}
+	// check remote connection address
+	if t.denyByIP(addr.IP) {
 		return true
 	}
 	// default allow
@@ -73,19 +90,23 @@ func (t *Target) AccessDeniedTCP(c net.Conn) bool {
 }
 
 func (t *Target) denyByIP(ip net.IP) bool {
-	if ip == nil || t.accessRules == nil {
+	if ip == nil || len(t.accessRules) == 0 {
 		return false
 	}
-
 	// check allow (whitelist) first if it exists
 	if _, ok := t.accessRules[ipAllowTag]; ok {
 		var block *net.IPNet
 		for _, x := range t.accessRules[ipAllowTag] {
 			if block, ok = x.(*net.IPNet); !ok {
-				log.Print("[ERROR] failed to assert ip block while checking allow rule for ", t.Service)
+				log.Printf("[ERROR] failed to assert ip block while checking allow rule for %s", t.Service)
 				continue
 			}
+			// debug logging
+			log.Printf("[DEBUG] checking %s against ip allow rule %s", ip.String(), block.String())
+			// check block
 			if block.Contains(ip) {
+				// debug logging
+				log.Printf("[DEBUG] allowing request from %s via %s", ip.String(), block.String())
 				// specific allow matched - allow this request
 				return false
 			}
@@ -101,9 +122,12 @@ func (t *Target) denyByIP(ip net.IP) bool {
 		var block *net.IPNet
 		for _, x := range t.accessRules[ipDenyTag] {
 			if block, ok = x.(*net.IPNet); !ok {
-				log.Print("[INFO] failed to assert ip block while checking deny rule for ", t.Service)
+				log.Printf("[INFO] failed to assert ip block while checking deny rule for %s", t.Service)
 				continue
 			}
+			// debug logging
+			log.Printf("[DEBUG] checking %s against ip deny rule %s", ip.String(), block.String())
+			// check block
 			if block.Contains(ip) {
 				// specific deny matched - deny this request
 				log.Printf("[INFO] route rules denied access from %s to %s",
@@ -112,6 +136,9 @@ func (t *Target) denyByIP(ip net.IP) bool {
 			}
 		}
 	}
+
+	// debug logging
+	log.Printf("[DEBUG] default allowing request from %s that was not denied", ip.String())
 
 	// default - do not deny
 	return false
