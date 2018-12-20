@@ -29,7 +29,7 @@ func (t *Target) AuthorizedHTTP(r *http.Request, w http.ResponseWriter, authSche
 	return scheme.AuthorizedHTTP(r, w, t.URL, t.Service)
 }
 
-func (t *Target) AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, rpcInfo *stats.RPCTagInfo, authSchemes map[string]auth.AuthScheme) bool {
+func (t *Target) AuthorizedGRPC(md *metadata.MD, connInfo *stats.ConnTagInfo, rpcInfo *stats.RPCTagInfo, authSchemes map[string]auth.AuthScheme) bool {
 	if t.AuthScheme == "" {
 		return true
 	}

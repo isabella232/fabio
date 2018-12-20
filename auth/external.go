@@ -81,15 +81,19 @@ func (e *external) AuthorizedHTTP(request *http.Request, response http.ResponseW
 		return false
 	}
 
+	for k, v := range res.Headers {
+		request.Header.Set(k, v)
+	}
+
 	return res.Ok
 }
 
-func (e *external) AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, dest *url.URL, fullMethod string, service string) bool {
+func (e *external) AuthorizedGRPC(md *metadata.MD, connInfo *stats.ConnTagInfo, dest *url.URL, fullMethod string, service string) bool {
 	ctx := context.Background()
 
 	headers := map[string]string{}
 
-	for k := range md {
+	for k := range *md {
 		headers[k] = strings.Join(md.Get(k), " ")
 	}
 
@@ -114,6 +118,10 @@ func (e *external) AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, d
 	if err != nil {
 		log.Println("[WARN] external-auth: got an error from the auth service ", err)
 		return false
+	}
+
+	for k, v := range res.Headers {
+		md.Set(k, v)
 	}
 
 	return res.Ok

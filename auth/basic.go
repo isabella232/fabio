@@ -43,7 +43,7 @@ func (b *basic) AuthorizedHTTP(request *http.Request, response http.ResponseWrit
 	return b.secrets.Match(user, password)
 }
 
-func (b *basic) AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, URL *url.URL, fullMethod string, service string) bool {
+func (b *basic) AuthorizedGRPC(md *metadata.MD, connInfo *stats.ConnTagInfo, URL *url.URL, fullMethod string, service string) bool {
 	panic("not implemented")
 }
 

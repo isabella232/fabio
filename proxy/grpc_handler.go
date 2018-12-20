@@ -117,9 +117,11 @@ func (g GrpcProxyInterceptor) Stream(srv interface{}, stream grpc.ServerStream, 
 	connInfo, _ := ctx.Value(connCtxKey{}).(*stats.ConnTagInfo)
 	rpcInfo, _ := ctx.Value(rpcCtxKey{}).(*stats.RPCTagInfo)
 
-	if !target.AuthorizedGRPC(md, connInfo, rpcInfo, g.AuthSchemes) {
+	if !target.AuthorizedGRPC(&md, connInfo, rpcInfo, g.AuthSchemes) {
 		return status.Error(codes.Unauthenticated, "not authorised")
 	}
+
+	ctx = metadata.NewIncomingContext(ctx, md)
 
 	proxyStream := proxyStream{
 		ServerStream: stream,

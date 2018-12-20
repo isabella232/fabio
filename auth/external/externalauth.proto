@@ -24,4 +24,5 @@ message Destination {
 
 message CheckResponse {
     bool ok = 1;
+    map<string, string> headers = 2;
 }

@@ -12,7 +12,7 @@ import (
 
 type AuthScheme interface {
 	AuthorizedHTTP(request *http.Request, response http.ResponseWriter, dest *url.URL, service string) bool
-	AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, URL *url.URL, fullMethod string, service string) bool
+	AuthorizedGRPC(md *metadata.MD, connInfo *stats.ConnTagInfo, URL *url.URL, fullMethod string, service string) bool
 	SupportedProto(proto string) bool
 }
 
