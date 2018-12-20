@@ -19,7 +19,7 @@ func (t *testAuth) AuthorizedHTTP(r *http.Request, w http.ResponseWriter, dest *
 	return t.ok
 }
 
-func (t *testAuth) AuthorizedGRPC(md metadata.MD, connInfo *stats.ConnTagInfo, dest *url.URL, fullMethod string, service string) bool {
+func (t *testAuth) AuthorizedGRPC(md *metadata.MD, connInfo *stats.ConnTagInfo, dest *url.URL, fullMethod string, service string) bool {
 	return t.ok
 }
 
@@ -165,7 +165,7 @@ func TestTarget_AuthorizedGRPC(t *testing.T) {
 				},
 			}
 
-			if got, want := target.AuthorizedGRPC(metadata.MD{}, &stats.ConnTagInfo{}, &stats.RPCTagInfo{}, tt.authSchemes), tt.out; !reflect.DeepEqual(got, want) {
+			if got, want := target.AuthorizedGRPC(&metadata.MD{}, &stats.ConnTagInfo{}, &stats.RPCTagInfo{}, tt.authSchemes), tt.out; !reflect.DeepEqual(got, want) {
 				t.Errorf("got %v want %v", got, want)
 			}
 		})
